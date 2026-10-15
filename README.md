@@ -7,7 +7,7 @@ Spring Boot remains a separate service and is the only gateway to business data.
 1. Copy `.env.example` to `.env` and configure AWS/Bedrock/Redis/Spring Boot values.
 2. `python -m venv .venv`
 3. Activate the venv, then `pip install -r requirements.txt`
-4. `docker compose up -d redis`
+4. `docker compose -f docker-compose.redis.yml up`
 5. `uvicorn src.app:app --reload`
 6. Check `/health/live` and `/health/ready`.
 
