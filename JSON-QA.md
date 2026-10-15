@@ -1,143 +1,81 @@
-## Testing MarineOn Business Tools
+### Test Case 1 — Get All Registered Vessels
 
-### 1. Prerequisites
+**Request JSON**
 
-Before running the tests, make sure:
-
-- The FastAPI service is running.
-- Redis is connected.
-- AWS credentials and Amazon Bedrock access are configured.
-- The business-tool mock handlers are enabled.
-- You have configured `INTERNAL_API_TOKEN` in your environment.
-
-Start the service:
-
-```powershell
-.\venv\Scripts\Activate.ps1
-uvicorn src.app:app --reload --log-level info
+```json
+{
+  "requestId": "tool-test-001",
+  "conversationId": "tool-test-001",
+  "message": "Show me all registered vessels."
+}
 ```
 
-### 2. API Endpoint
+**Expected tool:** `list_vessels`
 
-**Method:** `POST`
-
-**URL:**
-
-```text
-http://127.0.0.1:8000/internal/v1/chat
-```
-
-**Headers:**
+**Expected Java API call:**
 
 ```http
-Content-Type: application/json
-X-Internal-Service-Token: YOUR_INTERNAL_API_TOKEN
+GET {{crew_prod}}/api/vessels
 ```
 
-Replace `YOUR_INTERNAL_API_TOKEN` with the token configured in your environment.
+**Expected result:** MarineOn summarizes the registered vessels returned by the Java API. It should not interpret the request as asking for a current vessel.
 
 ---
 
-### 3. Test Case 1 — Get Current Vessel
+### Test Case 2 — Find Contracts Expiring Within 60 Days
 
-**Purpose:** Verify that MarineOn identifies a question about the user's current vessel and selects `get_current_vessel`.
-
-**Request JSON:**
-
-```json
-{
-  "requestId": "tool-test-001",
-  "conversationId": "tool-test-001",
-  "message": "get all registered vessel?",
-}
-```
-
-**Expected tool:**
-
-```text
-get_current_vessel
-```
-
-**Example response:**
-
-```json
-{
-  "requestId": "tool-test-001",
-  "conversationId": "tool-test-001",
-  "answer": "Which contracts will expire in the next 60 days",
-  "citations": [],
-  "latencySeconds": 1.234
-}
-```
-
-
-
----
-
-### 4. Test Case 2 — Find Expiring Certifications
-
-**Purpose:** Verify that MarineOn selects `get_expiring_certifications` when the user asks about upcoming certification expirations.
-
-**Request JSON:**
+**Request JSON**
 
 ```json
 {
   "requestId": "tool-test-002",
   "conversationId": "tool-test-002",
-  "message": "Which certifications are expiring in the next 30 days?",
+  "message": "Which crew contracts will expire in the next 60 days?"
 }
 ```
 
-**Expected tool:**
+**Expected tool:** `get_expiring_contracts`
 
-```text
-get_expiring_certifications
+**Expected Java API call:**
+
+```http
+GET {{base_url}}/api/dashboard/expired-contracts?days=60
 ```
 
-**Expected tool arguments:**
-
-```json
-{
-  "daysAhead": 30
-}
-```
-
-**Example response:**
-
-```json
-{
-  "requestId": "tool-test-002",
-  "conversationId": "tool-test-002",
-  "answer": "The mock certification data includes the following upcoming expirations:\n\n1. Medical Certificate (C-1001): 2026-10-25\n2. Basic Safety Training (C-1002): 2026-11-05",
-  "citations": [],
-  "latencySeconds": 1.456
-}
-```
-
-**Important:** The current mock handler contains fixed sample certification records. Confirm that it filters the records using `daysAhead` before treating this test as a date-accurate result. The example above illustrates the mock data, not a guarantee that both records fall within the requested 30-day window.
-
-
+**Expected result:** MarineOn summarizes the contracts scheduled to expire within the next 60 days.
 
 ---
 
-### 6. Verify the Terminal Logs
+### Test Case 3 — Find Certificates Expiring Within 100 Days
 
-When you submit a request, check the terminal running Uvicorn. The current implementation should print logs similar to these:
+**Request JSON**
 
-```text
-[CHAT] Received request ...
-[CHAT] Selected tool: get_current_vessel
-[BEDROCK TOOL] Starting request ...
-[BEDROCK TOOL] stopReason: tool_use
-[BEDROCK TOOL] Tool requested: get_current_vessel
-[TOOL HANDLER] Executing get_current_vessel ...
-[BEDROCK TOOL] Mock handler succeeded ...
+```json
+{
+  "requestId": "tool-test-003",
+  "conversationId": "tool-test-003",
+  "message": "Which crew certificates will expire in the next 100 days?"
+}
 ```
 
-The exact messages and order may vary. For each test, confirm that:
+**Expected tool:** `get_expiring_certifications`
 
-1. The correct tool is selected.
-2. Bedrock requests the expected tool and arguments.
-3. The mock handler executes successfully.
-4. The API returns HTTP `200 OK` with the expected request and conversation IDs.
+**Expected Java API call:**
 
+```http
+GET {{base_url}}/api/dashboard/expiring-certificates?days=100
+```
+
+**Expected result:** MarineOn summarizes the certificates scheduled to expire within the next 100 days.
+
+---
+
+### Verification Checklist
+
+- [ ] `get_all_vessels` is selected for vessel-list requests.
+- [ ] `get_expiring_contracts` is selected for contract-expiry requests.
+- [ ] `get_expiring_certifications` is selected for certificate-expiry requests.
+- [ ] Each tool calls the correct Java API endpoint.
+- [ ] The requested day range is passed correctly.
+- [ ] The response contains actual API data rather than unintended mock data.
+- [ ] The chat API returns HTTP `200 OK` with the correct request and conversation IDs.
