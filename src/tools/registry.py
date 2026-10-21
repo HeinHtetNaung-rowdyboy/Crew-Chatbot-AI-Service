@@ -1,19 +1,23 @@
-TOOL_NAMES = {
+"""Allowlisted live-data operations backed by Spring Boot.
+
+The chat router can call only names in TOOL_NAMES. Never accept arbitrary
+SQL, URL paths, or tool names from a user message.
+"""
+
+TOOL_NAMES = frozenset({
     "get_expired_contracts",
     "get_expiring_certificates",
     "list_vessels",
-}
+})
 
+# Kept for compatibility with any existing Bedrock Converse client elsewhere
+# in the service. Direct chat routing in ChatService does not use these schemas
+# to generate or rewrite answers.
 BEDROCK_TOOL_CONFIG = [
     {
         "toolSpec": {
             "name": "get_expired_contracts",
-            "description": (
-                "Retrieve contracts from the existing dashboard API "
-                "for a specified number of days. Use this tool when "
-                "the user asks which contracts will expire within a "
-                "time window."
-            ),
+            "description": "Retrieve expired or expiring contracts within a day window.",
             "inputSchema": {
                 "json": {
                     "type": "object",
@@ -21,9 +25,8 @@ BEDROCK_TOOL_CONFIG = [
                         "days": {
                             "type": "integer",
                             "minimum": 1,
-                            "description": (
-                                "Number of days in the requested window."
-                            ),
+                            "maximum": 3650,
+                            "description": "Number of days to look ahead.",
                         }
                     },
                     "required": ["days"],
@@ -35,10 +38,7 @@ BEDROCK_TOOL_CONFIG = [
     {
         "toolSpec": {
             "name": "get_expiring_certificates",
-            "description": (
-                "Retrieve certificates from the existing dashboard API "
-                "for a specified number of days."
-            ),
+            "description": "Retrieve crew certificates expiring within a day window.",
             "inputSchema": {
                 "json": {
                     "type": "object",
@@ -46,9 +46,8 @@ BEDROCK_TOOL_CONFIG = [
                         "days": {
                             "type": "integer",
                             "minimum": 1,
-                            "description": (
-                                "Number of days in the requested window."
-                            ),
+                            "maximum": 3650,
+                            "description": "Number of days to look ahead.",
                         }
                     },
                     "required": ["days"],
@@ -60,10 +59,7 @@ BEDROCK_TOOL_CONFIG = [
     {
         "toolSpec": {
             "name": "list_vessels",
-            "description": (
-                "Retrieve registered vessels and their information "
-                "from the crew management system."
-            ),
+            "description": "Retrieve the vessel list from the Java API.",
             "inputSchema": {
                 "json": {
                     "type": "object",
